@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d35400">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Protons Engineering - Daily Sheet</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root {
+    --band1: #d35400;       /* title band, same as the Excel */
+    --band2: #e67e22;       /* company band */
+    --band3: #b03a2e;       /* header red */
+    --bg: #fff6ee;
+    --card: #ffffff;
+    --ink: #2b1d16;
+    --muted: #7a655a;
+    --line: #f0d9c8;
+    --field: #fffaf5;
+    --good-bg: #e3f4ea;  --good-ink: #1b6b42;
+    --bad-bg: #fbe4e1;   --bad-ink: #a5281c;
+    --pill-bg: #fde8d6;  --pill-ink: #9a3f06;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1310;
+      --card: #281d18;
+      --ink: #f7ece4;
+      --muted: #c9ae9e;
+      --line: #4b372d;
+      --field: #1f1612;
+      --good-bg: #17382a;  --good-ink: #8fdcb2;
+      --bad-bg: #432019;   --bad-ink: #ffa89d;
+      --pill-bg: #4a2a14;  --pill-ink: #ffc79a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 17px;
+    line-height: 1.45;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 0 14px; }
+
+  /* ===== Banner: mirrors the Excel title rows ===== */
+  .banner { max-width: 720px; margin: 0 auto; }
+  .band1 {
+    background: var(--band1); color: #fff; text-align: center;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 14px 14px;
+  }
+  .band1 h1 { margin: 0; font-size: 1.7rem; font-weight: 800; letter-spacing: .2px; }
+  .band2 {
+    background: var(--band2); color: #fff;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 10px 14px;
+  }
+  .band2 .company { font-weight: 800; font-size: 1.1rem; }
+  .datebox { display: flex; align-items: center; gap: 8px; font-weight: 800; }
+  .datebox input {
+    font: inherit; font-weight: 600; padding: 6px 10px; border-radius: 8px;
+    border: 0; background: #fff; color: #2b1d16; width: auto;
+  }
+  .oldday {
+    background: var(--bad-bg); color: var(--bad-ink); padding: 8px 14px; font-weight: 600;
+    display: none; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .oldday.show { display: flex; }
+  .oldday button {
+    font: inherit; font-weight: 700; border: 0; background: var(--band3); color: #fff;
+    padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  }
+
+  /* ===== Summary ===== */
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 16px 0; }
+  .tile {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .tile .n { font-size: 1.8rem; font-weight: 800; line-height: 1.1; color: var(--band3); }
+  .tile .l { color: var(--muted); font-size: .85rem; font-weight: 600; }
+  .tile.total { grid-column: 1 / -1; background: var(--band3); border-color: var(--band3); display: flex; align-items: baseline; gap: 12px; }
+  .tile.total .n { font-size: 3rem; color: #fff; }
+  .tile.total .l { color: #ffe3dd; font-size: 1.05rem; }
+
+  /* ===== Cards ===== */
+  section.card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    margin-bottom: 16px; overflow: hidden;
+  }
+  section.card > h2 {
+    margin: 0; padding: 11px 16px; font-size: 1.05rem; font-weight: 800;
+    background: var(--band3); color: #fff;
+  }
+  .pad { padding: 4px 16px 16px; }
+  label { display: block; font-weight: 700; margin: 14px 0 5px; }
+  label .req { color: var(--band3); }
+  input, textarea {
+    width: 100%; font: inherit; padding: 12px; border-radius: 10px;
+    border: 1.5px solid var(--line); background: var(--field); color: var(--ink);
+  }
+  input:focus, textarea:focus, button:focus-visible, a:focus-visible {
+    outline: 3px solid var(--band2); outline-offset: 1px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .chip {
+    font: inherit; font-size: .9rem; font-weight: 700; padding: 7px 13px; border-radius: 999px;
+    border: 1.5px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  .chip.on { background: var(--band2); border-color: var(--band2); color: #fff; }
+  .btn {
+    font: inherit; font-weight: 800; border: 0; border-radius: 12px; cursor: pointer;
+    padding: 15px 18px; width: 100%; background: var(--band1); color: #fff; margin-top: 18px;
+  }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); margin-top: 10px; }
+  .btn.red { background: var(--band3); }
+
+  /* ===== Entry list ===== */
+  .entries { padding: 12px; display: grid; gap: 10px; }
+  .empty { margin: 0; padding: 18px 16px; color: var(--muted); }
+  .entry { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--field); }
+  .entry .top { display: flex; align-items: center; gap: 10px; }
+  .entry .num {
+    min-width: 28px; height: 28px; border-radius: 50%; background: var(--band2); color: #fff;
+    display: grid; place-items: center; font-weight: 800; font-size: .85rem;
+  }
+  .entry .id { font-weight: 800; color: var(--band3); flex: 1; }
+  .entry .name { font-weight: 800; font-size: 1.15rem; margin: 6px 0 8px; }
+  .entry .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .entry .grid .full { grid-column: 1 / -1; }
+  .entry .k { color: var(--muted); font-size: .78rem; font-weight: 600; }
+  .entry .v { font-weight: 600; word-break: break-word; }
+  .entry a { color: var(--band3); font-weight: 700; text-decoration: none; }
+  .pill { display: inline-block; background: var(--pill-bg); color: var(--pill-ink); padding: 2px 11px; border-radius: 999px; font-weight: 800; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 8px; font-weight: 700; background: var(--line); }
+  .tag.good { background: var(--good-bg); color: var(--good-ink); }
+  .tag.bad { background: var(--bad-bg); color: var(--bad-ink); }
+  .mini {
+    font: inherit; font-size: .85rem; font-weight: 700; padding: 5px 11px; border-radius: 8px;
+    border: 1.5px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  .mini.del { color: var(--bad-ink); }
+
+  /* ===== Sticky download bar ===== */
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--card); border-top: 2px solid var(--band1);
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .bar .in { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .bar .info { line-height: 1.15; }
+  .bar .info b { font-size: 1.5rem; color: var(--band3); }
+  .bar .info span { display: block; color: var(--muted); font-size: .8rem; font-weight: 600; }
+  .bar .btn { margin: 0; flex: 1; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding: 11px 18px; border-radius: 12px;
+    font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; max-width: 90%; text-align: center;
+  }
+  .toast.show { opacity: 1; }
+  .note { color: var(--muted); font-size: .85rem; margin: 10px 0 0; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="banner">
+  <div class="band1"><h1 id="title"></h1></div>
+  <div class="band2">
+    <span class="company" id="company"></span>
+    <label class="datebox" for="sheetDate" style="margin:0">DATE:- <input type="date" id="sheetDate"></label>
+  </div>
+  <div class="oldday" id="oldDay"><span id="oldDayText"></span><button type="button" id="goToday">Go to today</button></div>
+</header>
+
+<main>
+  <div class="summary" id="summary"></div>
+
+  <section class="card">
+    <h2 id="formTitle">New entry</h2>
+    <div class="pad">
+      <div id="fields"></div>
+      <button class="btn" id="addBtn" type="button">Add Entry</button>
+      <button class="btn ghost" id="cancelBtn" type="button" hidden>Cancel editing</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Today's entries</h2>
+    <div id="list"></div>
+  </section>
+
+  <section class="card">
+    <h2>Excel file</h2>
+    <div class="pad">
+      <label for="fileName">File name</label>
+      <input id="fileName" type="text" autocomplete="off">
+      <p class="note">The file downloads as .xlsx with the same headings and colours as your sheet.</p>
+      <button class="btn ghost" id="clearBtn" type="button">Clear this day's entries</button>
+    </div>
+  </section>
+</main>
+
+<div class="bar">
+  <div class="in">
+    <div class="info"><b id="barCount">0</b><span id="barLabel">calls</span></div>
+    <button class="btn" id="downloadBtn" type="button">Download Excel</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =====================================================================
+   EDIT ONLY THIS BLOCK to change headings, title, company, colours, etc.
+   ---------------------------------------------------------------------
+   columns: one item per Excel column, in the same order as the Excel.
+     key         the heading text (this is what appears in the Excel)
+     required    true = must be filled before adding
+     width       Excel column width
+     inputmode   "numeric" or "tel" opens the number keypad on the phone
+     suggest     list shown while typing (can still type anything else)
+     chips       quick-tap buttons under the box
+     role        "product" -> counted in the totals, "status" -> used by statusCounters
+   statusCounters: extra total lines, counted when the status contains `match`.
+   ===================================================================== */
+const CONFIG = {
+  title: "Protons Engineering",
+  company: "Company:Widecare",
+  sheetName: "Client Data",
+  fileNamePattern: "Protons-Widecare-{date}",   // {date} becomes dd-mm-yyyy
+  excelColors: { title: "D35400", company: "E67E22", header: "B03A2E" },
+  summarySuffix: " Calls",                      // "A/C" becomes "A/C Calls"
+  includeTotalsInExcel: true,
+  statusCounters: [
+    { label: "Gas Charging", match: "gas charg" }
+  ],
+  columns: [
+    { key: "Claim ID",       required: true, width: 15.66, inputmode: "numeric", placeholder: "e.g. 35431" },
+    { key: "Customer Name",  required: true, width: 25.66 },
+    { key: "Area",           width: 20.66,
+      suggest: ["Virar (W)", "Virar (E)", "Vasai (W)", "Naigaon (W)", "Mira Rd", "NSP (W)", "Goregaon (W)"] },
+    { key: "Phone Number",   width: 18, inputmode: "tel", type: "tel", placeholder: "10 digit number" },
+    { key: "Product Name",   required: true, width: 25.66, role: "product",
+      chips: ["A/C", "Ref", "W/M"] },
+    { key: "Product Status", width: 28, role: "status",
+      chips: ["Jet Service done", "Gas charging done", "Gas leak", "P.C.B faulty"] }
+  ]
+};
+/* ===================== Nothing below needs editing ===================== */
+
+const COLS = CONFIG.columns;
+const STORE_KEY = "protons-daily-sheet-v1";
+const $ = (id) => document.getElementById(id);
+const pad2 = (n) => String(n).padStart(2, "0");
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+}
+const fmt = (iso) => { const p = iso.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; };
+const fmtDash = (iso) => { const p = iso.split("-"); return p[2] + "-" + p[1] + "-" + p[0]; };
+
+let store = {};
+try { store = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { store = {}; }
+function persist() {
+  Object.keys(store).forEach((k) => { if (!store[k] || !store[k].length) delete store[k]; });
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+}
+
+let currentDate = todayISO();
+let editing = -1;
+let nameTouched = false;
+const rows = () => store[currentDate] || (store[currentDate] = []);
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+/* ---------- form ---------- */
+function buildForm() {
+  const box = $("fields");
+  box.innerHTML = "";
+  COLS.forEach((c, i) => {
+    const label = document.createElement("label");
+    label.htmlFor = "f" + i;
+    label.textContent = c.key;
+    if (c.required) {
+      const s = document.createElement("span");
+      s.className = "req"; s.textContent = " *";
+      label.appendChild(s);
+    }
+    const el = document.createElement("input");
+    el.id = "f" + i;
+    el.type = c.type || "text";
+    el.autocomplete = "off";
+    if (c.inputmode) el.inputMode = c.inputmode;
+    if (c.placeholder) el.placeholder = c.placeholder;
+    if (c.suggest) {
+      const dl = document.createElement("datalist");
+      dl.id = "dl" + i;
+      c.suggest.forEach((s) => { const o = document.createElement("option"); o.value = s; dl.appendChild(o); });
+      el.setAttribute("list", dl.id);
+      box.appendChild(dl);
+    }
+    box.appendChild(label);
+    box.appendChild(el);
+    if (c.chips) {
+      const wrap = document.createElement("div");
+      wrap.className = "chips";
+      wrap.id = "chips" + i;
+      c.chips.forEach((txt) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "chip"; b.textContent = txt;
+        b.addEventListener("click", () => { el.value = txt; refreshChips(i); });
+        wrap.appendChild(b);
+      });
+      box.appendChild(wrap);
+      el.addEventListener("input", () => refreshChips(i));
+    }
+  });
+}
+function refreshChips(i) {
+  const wrap = $("chips" + i);
+  if (!wrap) return;
+  const v = $("f" + i).value.trim().toLowerCase();
+  Array.from(wrap.children).forEach((b) => b.classList.toggle("on", b.textContent.toLowerCase() === v));
+}
+function clearForm() {
+  COLS.forEach((c, i) => { $("f" + i).value = ""; refreshChips(i); });
+}
+function setEditing(idx) {
+  editing = idx;
+  const on = idx >= 0;
+  $("formTitle").textContent = on ? "Edit entry " + (idx + 1) : "New entry";
+  $("addBtn").textContent = on ? "Save Changes" : "Add Entry";
+  $("cancelBtn").hidden = !on;
+}
+
+function addEntry() {
+  const row = {};
+  for (let i = 0; i < COLS.length; i++) {
+    const c = COLS[i];
+    const v = $("f" + i).value.trim();
+    if (c.required && !v) {
+      toast(c.key + " is needed");
+      $("f" + i).focus();
+      return;
+    }
+    row[c.key] = v;
+  }
+  if (editing >= 0) {
+    rows()[editing] = row;
+    toast("Changes saved");
+  } else {
+    rows().push(row);
+    toast("Entry added");
+  }
+  setEditing(-1);
+  persist();
+  clearForm();
+  render();
+  $("f0").focus();
+}
+
+function editEntry(idx) {
+  const r = rows()[idx];
+  COLS.forEach((c, i) => { $("f" + i).value = r[c.key] || ""; refreshChips(i); });
+  setEditing(idx);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function deleteEntry(idx) {
+  if (!confirm("Delete entry " + (idx + 1) + "?")) return;
+  rows().splice(idx, 1);
+  if (editing === idx) { setEditing(-1); clearForm(); }
+  persist();
+  render();
+}
+
+/* ---------- summary ---------- */
+function computeSummary(list) {
+  const items = [{ label: "Total Calls", value: list.length, total: true }];
+  const prodCol = COLS.find((c) => c.role === "product");
+  const statCol = COLS.find((c) => c.role === "status");
+  if (prodCol) {
+    const map = new Map();
+    list.forEach((r) => {
+      const v = (r[prodCol.key] || "").trim();
+      if (!v) return;
+      const k = v.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const e = map.get(k) || { label: v, n: 0 };
+      e.n++;
+      map.set(k, e);
+    });
+    map.forEach((e) => items.push({ label: e.label + CONFIG.summarySuffix, value: e.n }));
+  }
+  if (statCol) {
+    CONFIG.statusCounters.forEach((sc) => {
+      const n = list.filter((r) => (r[statCol.key] || "").toLowerCase().includes(sc.match.toLowerCase())).length;
+      if (n) items.push({ label: sc.label, value: n });
+    });
+  }
+  return items;
+}
+
+/* ---------- render ---------- */
+function statusClass(s) {
+  const t = s.toLowerCase();
+  if (/faulty|leak|leek|not working|pending/.test(t)) return "bad";
+  if (/done|ok|repair|working/.test(t)) return "good";
+  return "";
+}
+
+function render() {
+  const list = rows();
+
+  // summary tiles
+  const sum = $("summary");
+  sum.innerHTML = "";
+  computeSummary(list).forEach((it) => {
+    const d = document.createElement("div");
+    d.className = "tile" + (it.total ? " total" : "");
+    const n = document.createElement("div"); n.className = "n"; n.textContent = it.value;
+    const l = document.createElement("div"); l.className = "l"; l.textContent = it.label;
+    d.appendChild(n); d.appendChild(l);
+    sum.appendChild(d);
+  });
+
+  // entries
+  const box = $("list");
+  box.innerHTML = "";
+  if (!list.length) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = "Nothing added for " + fmt(currentDate) + " yet. Fill the form above and tap Add Entry.";
+    box.appendChild(p);
+  } else {
+    const wrap = document.createElement("div");
+    wrap.className = "entries";
+    list.forEach((r, idx) => {
+      const card = document.createElement("div");
+      card.className = "entry";
+
+      const top = document.createElement("div");
+      top.className = "top";
+      const num = document.createElement("div"); num.className = "num"; num.textContent = idx + 1;
+      const id = document.createElement("div"); id.className = "id"; id.textContent = r[COLS[0].key] || "";
+      const eb = document.createElement("button"); eb.type = "button"; eb.className = "mini"; eb.textContent = "Edit";
+      eb.addEventListener("click", () => editEntry(idx));
+      const db = document.createElement("button"); db.type = "button"; db.className = "mini del"; db.textContent = "Delete";
+      db.addEventListener("click", () => deleteEntry(idx));
+      top.append(num, id, eb, db);
+      card.appendChild(top);
+
+      if (COLS[1]) {
+        const nm = document.createElement("div"); nm.className = "name"; nm.textContent = r[COLS[1].key] || "";
+        card.appendChild(nm);
+      }
+
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      COLS.slice(2).forEach((c) => {
+        const val = r[c.key] || "";
+        if (!val) return;
+        const cell = document.createElement("div");
+        if (c.role === "status") cell.className = "full";
+        const k = document.createElement("div"); k.className = "k"; k.textContent = c.key;
+        const v = document.createElement("div"); v.className = "v";
+        if (c.type === "tel") {
+          const a = document.createElement("a");
+          a.href = "tel:" + val.replace(/[^\d+]/g, ""); a.textContent = val;
+          v.appendChild(a);
+        } else if (c.role === "product") {
+          const s = document.createElement("span"); s.className = "pill"; s.textContent = val;
+          v.appendChild(s);
+        } else if (c.role === "status") {
+          const s = document.createElement("span"); s.className = "tag " + statusClass(val); s.textContent = val;
+          v.appendChild(s);
+        } else {
+          v.textContent = val;
+        }
+        cell.append(k, v);
+        grid.appendChild(cell);
+      });
+      card.appendChild(grid);
+      wrap.appendChild(card);
+    });
+    box.appendChild(wrap);
+  }
+
+  // bar + banner
+  $("barCount").textContent = list.length;
+  $("barLabel").textContent = fmt(currentDate);
+  const isToday = currentDate === todayISO();
+  $("oldDay").classList.toggle("show", !isToday);
+  $("oldDayText").textContent = "Viewing " + fmt(currentDate);
+}
+
+function syncFileName() {
+  if (!nameTouched) $("fileName").value = CONFIG.fileNamePattern.replace("{date}", fmtDash(currentDate));
+}
+
+/* ---------- Excel ---------- */
+function colLetter(n) {
+  let s = "";
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function safeName(n) {
+  n = (n || "").replace(/[\\/:*?"<>|]/g, "").trim();
+  return n || CONFIG.fileNamePattern.replace("{date}", fmtDash(currentDate));
+}
+
+function triggerBlobDownload(blob, fileName) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+async function downloadExcelInBrowser(list, fileName) {
+  if (typeof ExcelJS === "undefined") {
+    throw new Error("In-browser ExcelJS library is unavailable.");
+  }
+
+  const n = COLS.length;
+  const last = colLetter(n);
+  const fill = (hex) => ({ type: "pattern", pattern: "solid", fgColor: { argb: "FF" + hex } });
+  const thin = { style: "thin", color: { argb: "FF999999" } };
+  const border = { top: thin, left: thin, bottom: thin, right: thin };
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(CONFIG.sheetName.slice(0, 31));
+  ws.columns = COLS.map((c) => ({ width: c.width || 20 }));
+
+  // Row 1: title
+  ws.mergeCells("A1:" + last + "1");
+  const t = ws.getCell("A1");
+  t.value = CONFIG.title;
+  t.font = { name: "Calibri", size: 20, bold: true, color: { argb: "FFFFFFFF" } };
+  t.fill = fill(CONFIG.excelColors.title);
+  t.alignment = { horizontal: "center", vertical: "middle" };
+  ws.getRow(1).height = 30;
+
+  // Row 2: company (left) and date (right)
+  const split = Math.max(1, Math.ceil(n / 2));
+  const style2 = (cell, align) => {
+    cell.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = fill(CONFIG.excelColors.company);
+    cell.alignment = { horizontal: align, vertical: "middle" };
+  };
+  if (n >= 2) {
+    ws.mergeCells("A2:" + colLetter(split) + "2");
+    ws.mergeCells(colLetter(split + 1) + "2:" + last + "2");
+    const c1 = ws.getCell("A2"), c2 = ws.getCell(colLetter(split + 1) + "2");
+    c1.value = CONFIG.company; style2(c1, "left");
+    c2.value = "DATE:- " + fmt(currentDate); style2(c2, "right");
+  } else {
+    const c1 = ws.getCell("A2"); c1.value = CONFIG.company + "   DATE:- " + fmt(currentDate); style2(c1, "left");
+  }
+  ws.getRow(2).height = 25;
+
+  // Row 3: headings
+  const head = ws.getRow(3);
+  COLS.forEach((c, i) => {
+    const cell = head.getCell(i + 1);
+    cell.value = c.key;
+    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = fill(CONFIG.excelColors.header);
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = border;
+  });
+  head.height = 22;
+
+  // Data rows (everything saved as text so phone numbers and IDs stay as typed)
+  list.forEach((r, ri) => {
+    const row = ws.getRow(4 + ri);
+    COLS.forEach((c, i) => {
+      const cell = row.getCell(i + 1);
+      cell.value = r[c.key] || "";
+      cell.numFmt = "@";
+      cell.font = { name: "Calibri", size: 11 };
+      cell.alignment = { horizontal: "left", vertical: "middle" };
+      cell.border = border;
+    });
+  });
+
+  // Totals, like the handwritten lines at the bottom of the paper sheet
+  if (CONFIG.includeTotalsInExcel) {
+    const items = computeSummary(list);
+    const labelCol = n >= 5 ? 4 : 1;
+    let rowNo = 4 + list.length + 1;
+    items.forEach((it) => {
+      const row = ws.getRow(rowNo++);
+      const a = row.getCell(labelCol), b = row.getCell(labelCol + 1);
+      a.value = it.label; b.value = it.value;
+      a.font = { name: "Calibri", size: 11, bold: true };
+      b.font = { name: "Calibri", size: 11, bold: true };
+      a.alignment = { horizontal: "left" };
+      b.alignment = { horizontal: "left" };
+      a.border = border; b.border = border;
+      a.fill = fill("FDE8D6");
+    });
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  triggerBlobDownload(blob, fileName);
+}
+
+async function downloadExcel() {
+  const list = rows();
+  if (!list.length) { toast("Add at least one entry first"); return; }
+
+  const btn = $("downloadBtn");
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Preparing Excel...";
+
+  const chosenFileName = safeName($("fileName").value) + ".xlsx";
+
+  const payload = {
+    title: CONFIG.title,
+    company: CONFIG.company,
+    sheetName: CONFIG.sheetName,
+    date: fmt(currentDate),
+    fileName: safeName($("fileName").value),
+    colors: CONFIG.excelColors,
+    columns: COLS.map((c) => ({ key: c.key, width: c.width })),
+    rows: list,
+    totals: CONFIG.includeTotalsInExcel ? computeSummary(list) : []
+  };
+
+  try {
+    const res = await fetch("/api/generate-excel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      let errMsg = "Server responded with status " + res.status;
+      try {
+        const errJson = await res.json();
+        if (errJson && errJson.error) errMsg = errJson.error;
+      } catch (e) {}
+      throw new Error(errMsg);
+    }
+
+    const blob = await res.blob();
+    triggerBlobDownload(blob, chosenFileName);
+    toast("Excel downloaded (via Netlify function)");
+  } catch (err) {
+    console.warn("Backend Excel generation failed, falling back to in-browser generation:", err);
+    try {
+      await downloadExcelInBrowser(list, chosenFileName);
+      toast("Excel downloaded (offline fallback)");
+    } catch (fallbackErr) {
+      toast("Failed to generate Excel: " + (fallbackErr.message || "Unknown error"));
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+}
+
+/* ---------- wire up ---------- */
+function setDate(iso) {
+  if (!iso) return;
+  currentDate = iso;
+  $("sheetDate").value = iso;
+  setEditing(-1);
+  clearForm();
+  syncFileName();
+  render();
+}
+
+$("title").textContent = CONFIG.title;
+$("company").textContent = CONFIG.company;
+document.title = CONFIG.title + " - Daily Sheet";
+$("sheetDate").value = currentDate;
+$("sheetDate").addEventListener("change", (e) => setDate(e.target.value));
+$("goToday").addEventListener("click", () => setDate(todayISO()));
+$("addBtn").addEventListener("click", addEntry);
+$("cancelBtn").addEventListener("click", () => { setEditing(-1); clearForm(); });
+$("downloadBtn").addEventListener("click", downloadExcel);
+$("fileName").addEventListener("input", () => { nameTouched = true; });
+$("clearBtn").addEventListener("click", () => {
+  if (!rows().length) return;
+  if (confirm("Delete ALL entries for " + fmt(currentDate) + "? Download the Excel first if you need it.")) {
+    store[currentDate] = [];
+    persist();
+    setEditing(-1);
+    render();
+  }
+});
+
+buildForm();
+syncFileName();
+render();
+</script>
+</body>
+</html>

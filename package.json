@@ -1,0 +1,13 @@
+{
+  "name": "protons-widecare-sheet",
+  "version": "1.0.0",
+  "description": "Daily service sheet app with Netlify Functions Excel generator",
+  "main": "index.html",
+  "scripts": {
+    "dev": "netlify dev",
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}
